@@ -346,13 +346,13 @@ function updateScore() {
 // ── Home screen ───────────────────────────────────────────────────────────────
 
 function showHome() {
-  document.getElementById('home-screen').hidden = false;
-  document.getElementById('game-screen').hidden = true;
+  document.getElementById('home-screen').style.display = 'flex';
+  document.getElementById('game-screen').style.display = 'none';
 }
 
 function showGame() {
-  document.getElementById('home-screen').hidden = true;
-  document.getElementById('game-screen').hidden = false;
+  document.getElementById('home-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'flex';
   updateScore();
   renderChallengeList();
   loadChallenge(state.current || 'T1C1');
