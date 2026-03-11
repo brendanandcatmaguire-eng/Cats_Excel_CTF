@@ -3,7 +3,7 @@
 // ── Leaderboard config ────────────────────────────────────────────────────────
 // Paste your Google Apps Script web app URL here to enable the leaderboard.
 // Leave as '' to run without a leaderboard (everything else still works).
-const LEADERBOARD_URL = '';
+const LEADERBOARD_URL = 'https://script.google.com/macros/s/AKfycbzmLEZz7H1m8b2F4jrbOQyK79i0jqb26iG7Y3SqMtBvn0aKcooEv1w0yQMD-su2f_B5JQ/exec';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
