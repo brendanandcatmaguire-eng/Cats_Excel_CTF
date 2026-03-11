@@ -323,7 +323,7 @@ function getWrongMessage(formula, ch) {
   if (!formula.startsWith('=') && !formula.startsWith('='.toUpperCase())) {
     return 'Formulas start with =  — but your answer is checked with or without it.';
   }
-  return 'Not quite — check the function name, range, and criteria. Use the hint if you're stuck.';
+  return "Not quite — check the function name, range, and criteria. Use the hint if you're stuck.";
 }
 
 function showFeedback(el, success, msg) {
