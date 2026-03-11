@@ -1,5 +1,10 @@
 'use strict';
 
+// ── Leaderboard config ────────────────────────────────────────────────────────
+// Paste your Google Apps Script web app URL here to enable the leaderboard.
+// Leave as '' to run without a leaderboard (everything else still works).
+const LEADERBOARD_URL = '';
+
 // ── State ─────────────────────────────────────────────────────────────────────
 
 const STATE_KEY = 'excelctf_v1';
@@ -19,6 +24,7 @@ function saveState(state) {
 }
 
 let state = loadState();
+let playerName = localStorage.getItem('excelctf_name') || '';
 
 // ── Unlock logic ──────────────────────────────────────────────────────────────
 
@@ -26,12 +32,10 @@ function isUnlocked(challenge) {
   const { id, tier } = challenge;
   if (id === 'T1C1') return true;
 
-  // Within tier: sequential unlock
   const tierChallenges = CHALLENGES.filter(c => c.tier === tier);
   const idx = tierChallenges.findIndex(c => c.id === id);
   if (idx > 0 && state.completed.includes(tierChallenges[idx - 1].id)) return true;
 
-  // First challenge of tier 2+ unlocks when prev tier is fully done
   if (idx === 0 && tier > 1) {
     const prevTier = CHALLENGES.filter(c => c.tier === tier - 1);
     return prevTier.every(c => state.completed.includes(c.id));
@@ -117,7 +121,6 @@ function validateWithHF(formula, tableData, targetRow, targetCol, expectedValue)
     const raw = hf.getCellValue({ sheet: 0, row: targetRow, col: targetCol });
     hf.destroy();
 
-    // HF error objects have a 'type' property
     if (raw !== null && typeof raw === 'object' && raw.type) return false;
 
     if (typeof expectedValue === 'number' && typeof raw === 'number') {
@@ -145,7 +148,6 @@ function validateAnswer(rawInput, challenge) {
     const upper = formula.toUpperCase().replace(/\s+/g, '');
     const structuralOk = (validation.mustContain || []).every(t => upper.includes(t.toUpperCase()));
     if (!structuralOk) return false;
-    // If we also have an expected value, try HF evaluation as a bonus check
     if (validation.expectedValue !== undefined && validation.fallbackType === 'formula') {
       try {
         return validateWithHF(formula, tableData, targetRow, targetCol, validation.expectedValue);
@@ -155,6 +157,74 @@ function validateAnswer(rawInput, challenge) {
   }
 
   return false;
+}
+
+// ── Leaderboard ───────────────────────────────────────────────────────────────
+
+function submitScore() {
+  if (!LEADERBOARD_URL || !playerName) return;
+  const url = `${LEADERBOARD_URL}?action=submit&name=${encodeURIComponent(playerName)}&score=${state.score}&completed=${state.completed.length}`;
+  fetch(url).catch(() => {});
+}
+
+async function fetchLeaderboard() {
+  if (!LEADERBOARD_URL) return null;
+  try {
+    const r = await fetch(`${LEADERBOARD_URL}?action=leaderboard`);
+    return await r.json();
+  } catch { return null; }
+}
+
+function showLeaderboard() {
+  const modal = document.getElementById('lb-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    loadLeaderboardContent();
+  }
+}
+
+function hideLeaderboard() {
+  const modal = document.getElementById('lb-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function loadLeaderboardContent() {
+  const body = document.getElementById('lb-body');
+  if (!body) return;
+
+  if (!LEADERBOARD_URL) {
+    body.innerHTML = `
+      <div class="lb-no-url">
+        <p>Leaderboard not configured yet.</p>
+        <p class="lb-hint">The admin needs to connect a Google Sheet backend to enable this. Everything else works fine without it.</p>
+      </div>`;
+    return;
+  }
+
+  body.innerHTML = '<p class="lb-loading">Fetching scores…</p>';
+  const data = await fetchLeaderboard();
+
+  if (!data || !Array.isArray(data) || !data.length) {
+    body.innerHTML = '<p class="lb-loading">No scores yet — be the first!</p>';
+    return;
+  }
+
+  const medals = ['🥇', '🥈', '🥉'];
+  const rows = data.map((entry, i) => {
+    const isMe = playerName && entry.name === playerName;
+    return `<tr class="${isMe ? 'lb-me' : ''}">
+      <td class="lb-rank">${medals[i] || i + 1}</td>
+      <td class="lb-name">${esc(entry.name)}${isMe ? ' <span class="lb-you">you</span>' : ''}</td>
+      <td class="lb-score">${Number(entry.score).toLocaleString()}</td>
+      <td class="lb-completed">${entry.completed}/20</td>
+    </tr>`;
+  }).join('');
+
+  body.innerHTML = `
+    <table class="lb-table">
+      <thead><tr><th>#</th><th>Name</th><th>Score</th><th>Done</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -262,7 +332,6 @@ function renderChallengePanel(ch) {
       </div>` : ''}
     </div>`;
 
-  // Wire up buttons
   const input = document.getElementById('formula-input');
   const submitBtn = document.getElementById('submit-btn');
   const hintBtn = document.getElementById('hint-btn');
@@ -301,11 +370,11 @@ function handleSubmit(ch) {
       state.score += pts;
       state.completed.push(ch.id);
       saveState(state);
+      submitScore(); // send to leaderboard
     }
     updateScore();
     renderChallengeList();
     renderChallengePanel(ch);
-    // scroll to explanation
     setTimeout(() => document.querySelector('.explanation-box')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
   } else {
     showFeedback(feedback, false, getWrongMessage(raw, ch));
@@ -319,9 +388,6 @@ function getWrongMessage(formula, ch) {
   if (ch.validation.type === 'contains' && ch.validation.mustContain) {
     const missing = ch.validation.mustContain.filter(t => !f.includes(t.toUpperCase()));
     if (missing.length) return `Formula must use: ${missing.join(', ')}`;
-  }
-  if (!formula.startsWith('=') && !formula.startsWith('='.toUpperCase())) {
-    return 'Formulas start with =  — but your answer is checked with or without it.';
   }
   return "Not quite — check the function name, range, and criteria. Use the hint if you're stuck.";
 }
@@ -343,7 +409,7 @@ function updateScore() {
   if (label) label.textContent = `${done}/${total} challenges`;
 }
 
-// ── Home screen ───────────────────────────────────────────────────────────────
+// ── Home / Game screens ───────────────────────────────────────────────────────
 
 function showHome() {
   document.getElementById('home-screen').style.display = 'flex';
@@ -351,6 +417,16 @@ function showHome() {
 }
 
 function showGame() {
+  // Save name
+  const nameInput = document.getElementById('player-name');
+  if (nameInput?.value.trim()) {
+    playerName = nameInput.value.trim();
+    localStorage.setItem('excelctf_name', playerName);
+  }
+  // Show name in topbar
+  const nameDisplay = document.getElementById('player-name-display');
+  if (nameDisplay && playerName) nameDisplay.textContent = playerName;
+
   document.getElementById('home-screen').style.display = 'none';
   document.getElementById('game-screen').style.display = 'flex';
   updateScore();
@@ -361,7 +437,26 @@ function showGame() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('start-btn').addEventListener('click', showGame);
+
+  // Name input — enable/disable start buttons
+  const nameInput = document.getElementById('player-name');
+  const startBtn  = document.getElementById('start-btn');
+  const contBtn   = document.getElementById('continue-btn');
+
+  if (nameInput) {
+    nameInput.value = playerName;
+    const syncBtns = () => {
+      const ok = nameInput.value.trim().length > 0;
+      if (startBtn) startBtn.disabled = !ok;
+      if (contBtn && !contBtn.hidden) contBtn.disabled = !ok;
+    };
+    nameInput.addEventListener('input', syncBtns);
+    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter' && nameInput.value.trim()) startBtn?.click(); });
+    syncBtns();
+  }
+
+  startBtn?.addEventListener('click', showGame);
+
   document.getElementById('reset-btn').addEventListener('click', () => {
     if (confirm('Reset all progress? This cannot be undone.')) {
       localStorage.removeItem(STATE_KEY);
@@ -369,14 +464,27 @@ document.addEventListener('DOMContentLoaded', () => {
       showHome();
     }
   });
-  document.getElementById('continue-btn')?.addEventListener('click', showGame);
 
-  // If they have progress, show continue option
+  // Continue button
   if (state.completed.length > 0) {
-    const cont = document.getElementById('continue-btn');
-    if (cont) {
-      cont.hidden = false;
-      cont.textContent = `Continue (${state.completed.length}/${CHALLENGES.length} done · ${state.score.toLocaleString()} pts)`;
+    if (contBtn) {
+      contBtn.hidden = false;
+      contBtn.disabled = playerName.length === 0;
+      contBtn.textContent = `Continue (${state.completed.length}/${CHALLENGES.length} done · ${state.score.toLocaleString()} pts)`;
+      contBtn.addEventListener('click', showGame);
     }
   }
+
+  // Leaderboard
+  document.querySelectorAll('.lb-trigger').forEach(btn => {
+    btn.addEventListener('click', showLeaderboard);
+  });
+  document.getElementById('lb-backdrop')?.addEventListener('click', hideLeaderboard);
+  document.getElementById('lb-close')?.addEventListener('click', hideLeaderboard);
+  document.getElementById('lb-refresh')?.addEventListener('click', loadLeaderboardContent);
+
+  // Keyboard: Escape closes modal
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') hideLeaderboard();
+  });
 });

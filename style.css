@@ -513,3 +513,155 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── Player name display (topbar) ─────────────────────────────────────────── */
+#player-name-display {
+  font-size: 13px; font-weight: 600; color: var(--accent);
+  padding: 4px 10px;
+  background: rgba(0,212,170,0.08);
+  border: 1px solid rgba(0,212,170,0.2);
+  border-radius: 8px;
+  max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.btn-topbar-lb {
+  background: none; border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 10px; cursor: pointer;
+  font-size: 14px; color: var(--muted); transition: all 0.15s;
+}
+.btn-topbar-lb:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ── Name input (home screen) ─────────────────────────────────────────────── */
+.name-wrap {
+  margin-bottom: 24px;
+}
+
+.name-input {
+  width: 100%; max-width: 360px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: var(--font-body); font-size: 15px;
+  color: var(--text); outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  text-align: center;
+}
+.name-input::placeholder { color: var(--muted); }
+.name-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,212,170,0.15);
+}
+
+.btn-hero-ghost {
+  background: none; color: var(--muted);
+  border: 1px solid var(--border);
+  font-size: 14px; font-weight: 500; padding: 12px 24px;
+  border-radius: 10px; cursor: pointer; transition: all 0.15s;
+}
+.btn-hero-ghost:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ── Leaderboard modal ────────────────────────────────────────────────────── */
+#lb-modal {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+
+.lb-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(1, 4, 9, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+.lb-panel {
+  position: relative; z-index: 1;
+  background: #161b22;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%; max-width: 520px;
+  max-height: 80vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.lb-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.lb-title {
+  font-size: 16px; font-weight: 700; flex: 1;
+}
+
+.btn-lb-action {
+  background: rgba(88,166,255,0.1); color: var(--blue);
+  border: 1px solid rgba(88,166,255,0.25);
+  border-radius: 6px; padding: 5px 12px;
+  font-size: 12px; cursor: pointer; transition: all 0.15s;
+}
+.btn-lb-action:hover { background: rgba(88,166,255,0.2); }
+
+.btn-lb-close {
+  background: none; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 6px;
+  width: 28px; height: 28px; font-size: 14px;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-lb-close:hover { border-color: var(--red); color: var(--red); }
+
+#lb-body {
+  overflow-y: auto; padding: 16px 20px; flex: 1;
+}
+
+.lb-loading {
+  text-align: center; color: var(--muted);
+  padding: 32px 0; font-size: 14px;
+}
+
+.lb-no-url {
+  text-align: center; padding: 32px 16px;
+}
+.lb-no-url p { color: var(--text); margin-bottom: 8px; }
+.lb-hint { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+.lb-table {
+  width: 100%; border-collapse: collapse; font-size: 14px;
+}
+
+.lb-table thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.lb-table th {
+  padding: 8px 10px; text-align: left;
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.lb-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid rgba(48,54,61,0.5);
+}
+
+.lb-table tr.lb-me td {
+  background: rgba(0,212,170,0.06);
+}
+.lb-table tr.lb-me .lb-name { color: var(--accent); font-weight: 600; }
+
+.lb-rank { font-size: 16px; width: 36px; }
+.lb-name { flex: 1; }
+.lb-score { font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
+.lb-completed { color: var(--muted); font-size: 12px; }
+
+.lb-you {
+  font-size: 10px; font-weight: 700;
+  background: rgba(0,212,170,0.15); color: var(--accent);
+  border-radius: 4px; padding: 1px 6px; margin-left: 6px;
+  vertical-align: middle;
+}
